@@ -10,7 +10,7 @@ export const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <Home /> },
-      { path: "/2", element: <Page2 /> },
+      { path: "/edi", element: <Page2 /> },
       { path: "/3", element: <Page3 /> },
     ],
   },
