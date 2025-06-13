@@ -1,33 +1,30 @@
 // src/pages/LessonDetail.jsx
-import React, { useState, useEffect, useContext } from 'react'; // <-- NOU: Adaugă useContext
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext'; // <-- NOU: Importă AuthContext-ul tău
+import { AuthContext } from '../context/AuthContext';
 
 const LessonDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { token, isAuthenticated } = useContext(AuthContext); // <-- NOU: Preia token-ul și starea de autentificare
+    const { token, isAuthenticated } = useContext(AuthContext);
 
     const [lesson, setLesson] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Stare pentru înregistrarea audio a utilizatorului
     const [userRecording, setUserRecording] = useState(null);
-    const [uploadingRecording, setUploadingRecording] = useState(false); // Stare pentru încărcare
-    const [recordingError, setRecordingError] = useState(null); // Stare pentru erorile de înregistrare
+    const [uploadingRecording, setUploadingRecording] = useState(false);
+    const [recordingError, setRecordingError] = useState(null);
 
-    // Funcție pentru gestionarea selecției fișierului audio de către utilizator
     const handleUserRecordingChange = (e) => {
         setUserRecording(e.target.files[0]);
     };
 
-    // Funcție pentru a trimite înregistrarea utilizatorului către backend
     const handleUserRecordingSubmit = async (e) => {
         e.preventDefault();
-        setUploadingRecording(true); // Începe încărcarea
-        setRecordingError(null);     // Resetează erorile
+        setUploadingRecording(true);
+        setRecordingError(null);
 
         if (!userRecording) {
             alert("Te rog selectează un fișier audio pentru înregistrare.");
@@ -35,7 +32,6 @@ const LessonDetail = () => {
             return;
         }
 
-        // NOU: Verifică token-ul înainte de a trimite înregistrarea
         if (!token) {
             setRecordingError('Nu ești autentificat. Te rog loghează-te pentru a încărca înregistrări.');
             setUploadingRecording(false);
@@ -44,29 +40,21 @@ const LessonDetail = () => {
         }
 
         const formData = new FormData();
-        // Backend-ul tău se așteaptă la 'audioFile' pentru ruta /:id/upload-audio
-        formData.append('audioFile', userRecording); // <-- Modificat: Numele câmpului 'audioFile'
-        // Nu mai e necesar 'lessonId' aici, deoarece ID-ul lecției e în URL-ul rutei backend-ului
+        formData.append('audioFile', userRecording);
 
         console.log("Se pregătește înregistrarea utilizatorului pentru trimitere...");
         
         try {
-            // URL-ul backend-ului pentru upload audio specific unei lecții este /api/lessons/:id/upload-audio
-            // (Conform lessonRoutes.ts)
-            const response = await axios.post(`http://localhost:3000/api/lessons/${id}/upload-audio`, formData, { // <-- Modificat URL-ul
+            const response = await axios.post(`http://localhost:3000/api/lessons/${id}/upload-audio`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${token}` // <-- NOU: Adaugă token-ul de autentificare
+                    'Authorization': `Bearer ${token}`
                 },
-                // withCredentials: true // De obicei nu e necesar pentru JWT, doar pentru cookie-uri
             });
 
             console.log('Înregistrarea utilizatorului a fost trimisă cu succes:', response.data);
             alert('Înregistrarea ta a fost trimisă cu succes!');
-            setUserRecording(null); // Resetăm câmpul de înregistrare
-            // Dacă vrei să actualizezi UI-ul cu noua înregistrare a lecției, ar trebui să faci o nouă cerere GET
-            // sau să actualizezi starea `lesson` cu noul `audioUrl` dacă backend-ul îl returnează.
-            // Pentru simplitate, momentan nu facem asta, dar e un punct de îmbunătățire.
+            setUserRecording(null);
 
         } catch (error) {
             console.error('Eroare la trimiterea înregistrării utilizatorului:', error);
@@ -74,9 +62,8 @@ const LessonDetail = () => {
                 console.error('Data eroare:', error.response.data);
                 console.error('Status eroare:', error.response.status);
                 setRecordingError(error.response.data.message || error.response.data.error || 'Server error');
-                 if (error.response.status === 401 || error.response.status === 403) {
+                if (error.response.status === 401 || error.response.status === 403) {
                     alert('Sesiunea a expirat sau nu ai permisiuni. Te rog loghează-te din nou.');
-                    // logout(); // Deconectează utilizatorul din frontend (dacă e cazul)
                     navigate('/login');
                 }
             } else if (error.request) {
@@ -87,7 +74,7 @@ const LessonDetail = () => {
                 setRecordingError(`A apărut o eroare: ${error.message}`);
             }
         } finally {
-            setUploadingRecording(false); // Oprește încărcarea
+            setUploadingRecording(false);
         }
     };
 
@@ -95,8 +82,7 @@ const LessonDetail = () => {
         const fetchLesson = async () => {
             try {
                 const response = await axios.get(`http://localhost:3000/api/lessons/${id}`);
-                // CORECȚIE AICI: Accesează proprietatea 'data' care conține obiectul lecției
-                setLesson(response.data.data); // <-- Modificat aici!
+                setLesson(response.data.data);
                 setLoading(false);
             } catch (err) {
                 console.error("Eroare la preluarea lecției:", err);
@@ -138,14 +124,12 @@ const LessonDetail = () => {
         );
     }
 
-    // CORECȚIE AICI: Construim URL-urile complete pentru fișierele servite de backend cu portul 3000
-    // Asigură-te că `sheetMusicImageUrl` și `audioUrl` vin de la backend cu căi relative corecte (ex: /uploads/lessons/...)
     const sheetMusicImageUrl = lesson.sheetMusicImageUrl
-        ? `http://localhost:3000${lesson.sheetMusicImageUrl}` // <-- Adăugat http://localhost:3000
+        ? `http://localhost:3000${lesson.sheetMusicImageUrl}`
         : null;
 
     const lessonAudioUrl = lesson.audioUrl
-        ? `http://localhost:3000${lesson.audioUrl}` // <-- Adăugat http://localhost:3000
+        ? `http://localhost:3000${lesson.audioUrl}`
         : null;
 
     return (
@@ -158,7 +142,7 @@ const LessonDetail = () => {
                     <img
                         src={sheetMusicImageUrl}
                         alt={lesson.title}
-                        className="w-full h-80 object-contain rounded-lg mb-6 shadow-md"
+                        className="max-w-full h-auto object-contain rounded-lg mb-6 shadow-md max-h-[75vh] mx-auto block" // <-- MODIFICAT AICI
                     />
                 )}
 
@@ -170,7 +154,6 @@ const LessonDetail = () => {
                 )}
 
                 {/* Conținutul complet al lecției (din TinyMCE, creat de admin) */}
-                {/* Asigură-te că prose și prose-lg sunt clase TailwindCSS definite (ex: @tailwindcss/typography) */}
                 <div className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: lesson.theoryContent }}>
                 </div>
@@ -209,7 +192,7 @@ const LessonDetail = () => {
                     <button
                         type="submit"
                         className="w-full bg-red-700 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-red-800 transition-colors duration-300"
-                        disabled={uploadingRecording} // Dezactivează butonul în timpul încărcării
+                        disabled={uploadingRecording}
                     >
                         {uploadingRecording ? 'Se încarcă...' : 'Trimite Înregistrarea Mea'}
                     </button>

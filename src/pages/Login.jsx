@@ -2,53 +2,49 @@
 import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext'; // Importăm AuthContext-ul tău
+import { AuthContext } from '../context/AuthContext';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
     const navigate = useNavigate();
-    const { login } = useContext(AuthContext); // Aici obținem funcția `login` din context
+    const { login } = useContext(AuthContext);
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); // Oprește reîncărcarea paginii la trimiterea formularului
-        setError(null); // Resetează mesajele de eroare
+        e.preventDefault();
+        setError(null);
 
         try {
-            // Trimitem cererea POST către ruta de login din backend
-            // Asigură-te că URL-ul este corect!
             const response = await axios.post('http://localhost:3000/api/auth/login', {
                 email,
                 password,
             });
 
-            // Backend-ul tău returnează { token, user } la login de succes.
-            // Le extragem din răspuns.
             const { token, user } = response.data;
 
-            // Apelăm funcția `login` din context pentru a salva token-ul și informațiile despre user
-            // în `localStorage` și în starea aplicației.
             login(token, user);
 
             alert(`Login reușit! Bun venit, ${user.email} (Rol: ${user.role})`);
             
-            // Redirecționăm utilizatorul în funcție de rol sau la o pagină specifică
+            // --- CORECTIE AICI ---
             if (user.role === 'admin') {
-                navigate('/lessons/new'); // Ex: Redirecționează adminul la pagina de creare lecții
+                // Redirecționează adminul la pagina unde administrează lecțiile
+                // Aceasta este noua rută pe care am configurat-o pentru lista de lecții admin
+                navigate('/admin/lessons'); 
             } else {
-                navigate('/'); // Ex: Redirecționează utilizatorul obișnuit la homepage
+                // Redirecționează utilizatorul obișnuit la homepage sau la lista publică de lecții
+                navigate('/'); // Sau navigate('/lessons');
             }
+            // --- SFARSIT CORECTIE ---
+
         } catch (err) {
             console.error('Eroare la login:', err);
             if (err.response) {
-                // Eroare primită de la server (ex: 401 Unauthorized, 400 Bad Request)
                 setError(err.response.data.message || 'Email sau parolă incorecte.');
             } else if (err.request) {
-                // Cererea a fost făcută, dar nu s-a primit răspuns (ex: server oprit, problemă de rețea)
                 setError('Niciun răspuns de la server. Verifică conexiunea la internet sau dacă serverul backend rulează.');
             } else {
-                // Altă eroare apărută la configurarea cererii
                 setError(`A apărut o eroare: ${err.message}`);
             }
         }
@@ -100,4 +96,4 @@ const Login = () => {
     );
 };
 
-export default Login; // Asigură-te că numele exportat se potrivește cu cel din rutele tale React
+export default Login;
