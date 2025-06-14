@@ -19,84 +19,75 @@ const LessonDetail = () => {
     const [tempPreviewAudioBlob, setTempPreviewAudioBlob] = useState(null); // Blob-ul fișierului audio (doar pentru înregistrare directă)
     const [tempUserSelectedFile, setTempUserSelectedFile] = useState(null); // Fișierul selectat de utilizator TEMPORAR
 
-    // NOU: Stări pentru cea mai recentă înregistrare SALVATĂ (preluată din DB)
+    // Stări pentru cea mai recentă înregistrare SALVATĂ (preluată din DB)
     const [lastSavedAudioURL, setLastSavedAudioURL] = useState(null);
     const [lastSavedAudioName, setLastSavedAudioName] = useState(null); // Pentru afișarea numelui fișierului salvat
+    const [lastSavedRecordingId, setLastSavedRecordingId] = useState(null); // NOU: ID-ul înregistrării salvate
 
     const [recordingError, setRecordingError] = useState(null); // Mesaj de eroare general pentru înregistrare/upload
     const [uploadingRecording, setUploadingRecording] = useState(false);
 
-    // Stări pentru a afișa toate înregistrările existente ale utilizatorului pentru această lecție (lista de jos)
-    const [userLessonRecordings, setUserLessonRecordings] = useState([]);
+    // Stări pentru a afișa toate înregistrările existente ale utilizatorului pentru această lecție (lista de jos - ELIMINATĂ ACUM)
+    // const [userLessonRecordings, setUserLessonRecordings] = useState([]);
     const [fetchingUserRecordings, setFetchingUserRecordings] = useState(false);
-    const [deletingRecordingId, setDeletingRecordingId] = useState(null); // ID-ul înregistrării care este ștearsă
+    const [deletingRecording, setDeletingRecording] = useState(false); // NOU: Stare pentru a indica ștergerea
 
     // Referințe pentru MediaRecorder
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const streamRef = useRef(null);
 
-    // Funcție pentru a prelua înregistrările utilizatorului pentru această lecție
-    const fetchUserRecordingsForLesson = useCallback(async () => {
+    // Funcție pentru a prelua înregistrarea utilizatorului pentru această lecție
+    // Va prelua doar o singură înregistrare (cea mai recentă)
+    const fetchUserRecordingForLesson = useCallback(async () => {
         if (!isAuthenticated || !token || !id) {
-            setUserLessonRecordings([]);
-            // Curăță și player-ul de sus dacă nu ești autentificat sau nu ai ID
-            if (tempPreviewAudioURL && tempPreviewAudioURL.startsWith('blob:')) {
-                URL.revokeObjectURL(tempPreviewAudioURL);
-            }
-            setTempPreviewAudioURL(null);
-            setTempUserSelectedFile(null);
-            setTempPreviewAudioBlob(null);
             setLastSavedAudioURL(null);
             setLastSavedAudioName(null);
+            setLastSavedRecordingId(null);
             setFetchingUserRecordings(false);
             return;
         }
         setFetchingUserRecordings(true);
         try {
-            console.log(`FRONTEND DEBUG (LessonDetail): Se preiau înregistrările utilizatorului pentru lecția ${id}`);
+            console.log(`FRONTEND DEBUG (LessonDetail): Se preia înregistrarea utilizatorului pentru lecția ${id}`);
             const response = await axios.get(`http://localhost:3000/api/user-recordings/${id}/my-recordings`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
             const fetchedRecordings = response.data.data;
-            setUserLessonRecordings(fetchedRecordings);
-            console.log("FRONTEND DEBUG (LessonDetail): Înregistrări specifice lecției preluate:", fetchedRecordings);
-
-            // NOU: Setează cea mai recentă înregistrare a utilizatorului în player-ul de sus (zona "Audio Pregătit")
-            // DOAR dacă nu există deja o înregistrare temporară activă (care are prioritate)
-            if (fetchedRecordings.length > 0 && !isRecording && !tempPreviewAudioURL && !tempUserSelectedFile) {
-                const mostRecentRecording = fetchedRecordings[0]; // Înregistrările sunt sortate descrescător după createdAt
+            // Presupunem că backend-ul returnează maxim o înregistrare sau un array gol
+            if (fetchedRecordings.length > 0) {
+                const mostRecentRecording = fetchedRecordings[0]; 
                 setLastSavedAudioURL(`http://localhost:3000${mostRecentRecording.audioUrl}`);
-                setLastSavedAudioName(`Ultima înregistrare salvată: ${new Date(mostRecentRecording.createdAt).toLocaleDateString()}`);
-            } else if (fetchedRecordings.length === 0 && !isRecording && !tempPreviewAudioURL && !tempUserSelectedFile) {
-                // Dacă nu există înregistrări salvate și nici temporare, asigură-te că playerul de sus e gol
+                setLastSavedAudioName(`Înregistrare salvată: ${new Date(mostRecentRecording.createdAt).toLocaleDateString()}`);
+                setLastSavedRecordingId(mostRecentRecording.id); // Setează ID-ul înregistrării salvate
+            } else {
                 setLastSavedAudioURL(null);
                 setLastSavedAudioName(null);
+                setLastSavedRecordingId(null);
             }
 
         } catch (err) {
-            console.error('FRONTEND ERROR (LessonDetail): Eroare la preluarea înregistrărilor specifice lecției:', err);
-            // La eroare, asigură-te că player-ul de sus este curat
+            console.error('FRONTEND ERROR (LessonDetail): Eroare la preluarea înregistrării specifice lecției:', err);
             setLastSavedAudioURL(null);
             setLastSavedAudioName(null);
+            setLastSavedRecordingId(null);
         } finally {
             setFetchingUserRecordings(false);
         }
-    }, [id, isAuthenticated, token, isRecording, tempPreviewAudioURL, tempUserSelectedFile]); // Adăugat dependențe relevante
+    }, [id, isAuthenticated, token]); 
 
-    // Reîmprospătează înregistrările utilizatorului la montare sau la schimbarea stărilor cheie
+
     useEffect(() => {
         if (isAuthenticated && id) {
-            fetchUserRecordingsForLesson();
+            fetchUserRecordingForLesson();
         }
-    }, [isAuthenticated, id, token, fetchUserRecordingsForLesson]); // Re-execută la schimbarea dependențelor
+    }, [isAuthenticated, id, fetchUserRecordingForLesson]);
 
 
     // --- Funcții pentru înregistrarea audio directă (microfon) ---
     const startRecording = async () => {
-        // Curățăm orice fișier temporar sau URL salvat anterior când începem o nouă înregistrare
         if (tempPreviewAudioURL && tempPreviewAudioURL.startsWith('blob:')) {
             URL.revokeObjectURL(tempPreviewAudioURL);
         }
@@ -119,8 +110,8 @@ const LessonDetail = () => {
             mediaRecorder.onstop = () => {
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
                 const audioURL = URL.createObjectURL(audioBlob);
-                setTempPreviewAudioURL(audioURL); // Setează URL-ul TEMPORAR
-                setTempPreviewAudioBlob(audioBlob); // Setează Blob-ul TEMPORAR
+                setTempPreviewAudioURL(audioURL); 
+                setTempPreviewAudioBlob(audioBlob); 
                 setIsRecording(false);
 
                 if (streamRef.current) {
@@ -160,11 +151,10 @@ const LessonDetail = () => {
 
     // --- Funcția pentru încărcarea unui fișier existent ---
     const handleUserSelectedFileChange = (e) => {
-        // Curățăm orice înregistrare directă sau URL salvat anterior
         if (tempPreviewAudioURL && tempPreviewAudioURL.startsWith('blob:')) {
             URL.revokeObjectURL(tempPreviewAudioURL);
         }
-        setTempPreviewAudioURL(null);
+        setTempPreviewAudioURL(null); 
         setTempPreviewAudioBlob(null);
         setIsRecording(false);
         if (streamRef.current) {
@@ -173,11 +163,11 @@ const LessonDetail = () => {
         }
 
         const file = e.target.files[0];
-        setTempUserSelectedFile(file); // Setează fișierul TEMPORAR
+        setTempUserSelectedFile(file); 
         setRecordingError(null);
 
         if (file) {
-            setTempPreviewAudioURL(URL.createObjectURL(file)); // Setează URL-ul TEMPORAR
+            setTempPreviewAudioURL(URL.createObjectURL(file)); 
         }
     };
 
@@ -198,8 +188,8 @@ const LessonDetail = () => {
         setRecordingError(null);
         audioChunksRef.current = [];
         console.log('Opțiunile de înregistrare/încărcare temporare au fost resetate.');
-        // După resetare, încercăm să afișăm din nou ultima înregistrare salvată din DB, dacă există.
-        fetchUserRecordingsForLesson(); 
+        // După resetare, forțăm o re-preluare pentru a afișa ultima înregistrare salvată din DB, dacă există.
+        fetchUserRecordingForLesson(); 
     };
 
     // --- Funcție pentru upload-ul înregistrării utilizatorului (ambele opțiuni) ---
@@ -210,8 +200,8 @@ const LessonDetail = () => {
 
         let fileToUpload = null;
 
-        // Prioritizează înregistrarea directă
-        if (tempPreviewAudioBlob) {
+        // CORECTAT: Folosim tempPreviewAudioBlob, nu recordedAudioBlob
+        if (tempPreviewAudioBlob) { 
             fileToUpload = new File([tempPreviewAudioBlob], `recording-${Date.now()}.webm`, { type: tempPreviewAudioBlob.type });
         } else if (tempUserSelectedFile) {
             fileToUpload = tempUserSelectedFile;
@@ -251,7 +241,6 @@ const LessonDetail = () => {
             console.log('FRONTEND: Înregistrarea utilizatorului a fost salvată cu succes:', response.data);
             setRecordingError('Înregistrarea ta a fost salvată cu succes!');
             
-            // După salvare, curățăm stările temporare, deoarece fișierul este acum salvat permanent.
             if (tempPreviewAudioURL && tempPreviewAudioURL.startsWith('blob:')) {
                 URL.revokeObjectURL(tempPreviewAudioURL);
             }
@@ -259,8 +248,8 @@ const LessonDetail = () => {
             setTempPreviewAudioBlob(null);
             setTempUserSelectedFile(null);
 
-            // Reîmprospătăm lista de înregistrări, care va actualiza și player-ul de sus cu noua înregistrare salvată.
-            fetchUserRecordingsForLesson(); 
+            // Reîmprospătăm starea înregistrării salvate (va prelua noua înregistrare)
+            fetchUserRecordingForLesson(); 
             
         } catch (error) {
             console.error('FRONTEND ERROR: Eroare la trimiterea înregistrării utilizatorului:', error);
@@ -285,9 +274,13 @@ const LessonDetail = () => {
         }
     };
 
-    // Funcție pentru ștergerea unei înregistrări a utilizatorului
-    const handleDeleteUserRecording = async (recordingId) => {
-        if (!window.confirm('Ești sigur că vrei să ștergi această înregistrare?')) {
+    // Funcție pentru ștergerea înregistrării utilizatorului
+    const handleDeleteUserRecording = async () => {
+        if (!lastSavedRecordingId) {
+            setRecordingError('Nu există nicio înregistrare salvată de șters.');
+            return;
+        }
+        if (!window.confirm('Ești sigur că vrei să ștergi înregistrarea ta pentru această lecție? Această acțiune este ireversibilă.')) {
             return;
         }
 
@@ -298,17 +291,23 @@ const LessonDetail = () => {
             return;
         }
 
-        setDeletingRecordingId(recordingId);
+        setDeletingRecording(true);
         try {
-            console.log(`FRONTEND DEBUG (LessonDetail): Se șterge înregistrarea utilizatorului cu ID: ${recordingId}`);
-            await axios.delete(`http://localhost:3000/api/user-recordings/${recordingId}`, {
+            console.log(`FRONTEND DEBUG (LessonDetail): Se șterge înregistrarea utilizatorului cu ID: ${lastSavedRecordingId}`);
+            await axios.delete(`http://localhost:3000/api/user-recordings/${lastSavedRecordingId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            console.log(`FRONTEND DEBUG (LessonDetail): Înregistrarea ${recordingId} ștearsă cu succes.`);
+            console.log(`FRONTEND DEBUG (LessonDetail): Înregistrarea ${lastSavedRecordingId} ștearsă cu succes.`);
             setRecordingError('Înregistrarea a fost ștearsă cu succes!');
-            fetchUserRecordingsForLesson(); // Reîmprospătează lista după ștergere
+            
+            // După ștergere, curățăm player-ul de sus
+            setLastSavedAudioURL(null);
+            setLastSavedAudioName(null);
+            setLastSavedRecordingId(null);
+            // resetTemporaryRecordingOptions(); // Ar putea fi apelat dacă vrei să resetezi și opțiunile de înregistrare
+            
         } catch (err) {
             console.error('FRONTEND ERROR (LessonDetail): Eroare la ștergerea înregistrării utilizatorului:', err);
             setRecordingError(err.response?.data?.message || 'Eroare la ștergerea înregistrării.');
@@ -317,7 +316,7 @@ const LessonDetail = () => {
                 navigate('/login');
             }
         } finally {
-            setDeletingRecordingId(null);
+            setDeletingRecording(false);
         }
     };
 
@@ -344,7 +343,6 @@ const LessonDetail = () => {
         }
     }, [id]);
 
-    // --- Stări de încărcare/eroare pentru pagină ---
     if (loading) {
         return (
             <div className="flex justify-center items-center h-screen bg-gray-100">
@@ -385,7 +383,11 @@ const LessonDetail = () => {
 
     // Determină ce URL audio să afișăm în player-ul de sus
     const currentAudioForTopPlayer = tempPreviewAudioURL || lastSavedAudioURL;
-    const currentAudioNameForTopPlayer = tempUserSelectedFile?.name || lastSavedAudioName || 'Audio'; // Nume pentru afișare
+    // Determină numele audio-ului pentru afișare
+    const currentAudioNameForTopPlayer = tempUserSelectedFile?.name ? `Fișier selectat: ${tempUserSelectedFile.name}` :
+                                         tempPreviewAudioBlob ? 'Înregistrare nouă (neînregistrată)' :
+                                         lastSavedAudioName || 'Audio';
+
 
     return (
         <div className="container mx-auto p-6">
@@ -418,7 +420,7 @@ const LessonDetail = () => {
                 <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
                     <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Adaugă-ți Înregistrarea</h2>
                     <p className="text-gray-700 mb-4">
-                        Exersează și adaugă-ți o înregistrare audio, fie direct cu microfonul, fie încărcând un fișier.
+                        Înregistrează-ți sau încarcă-ți cântarea pentru această lecție. Aceasta va înlocui orice înregistrare existentă.
                     </p>
 
                     {recordingError && (
@@ -431,7 +433,7 @@ const LessonDetail = () => {
                     {/* Interfața de înregistrare sau încărcare fișier */}
                     <div className="flex flex-col items-center justify-center p-4 border border-gray-300 rounded-lg bg-gray-50 mb-6">
                         {/* Afișăm opțiunile de pornire înregistrare/încărcare fișier DOAR dacă nu e înregistrare activă
-                            și nu există audio pregătit TEMPORAR și nu există audio SALVAT care să fie afișat deja */}
+                            și NU există audio pregătit TEMPORAR și NU există audio SALVAT care să fie afișat */}
                         {!isRecording && !tempPreviewAudioURL && !lastSavedAudioURL && ( 
                             <div className="w-full flex flex-col items-center mb-4">
                                 <button
@@ -475,9 +477,6 @@ const LessonDetail = () => {
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-red-700 hover:file:bg-gray-200"
                                     onChange={handleUserSelectedFileChange}
                                 />
-                                {tempUserSelectedFile && (
-                                    <p className="mt-2 text-sm text-gray-600">Fișier selectat: {tempUserSelectedFile.name}</p>
-                                )}
                             </div>
                         )}
 
@@ -487,9 +486,9 @@ const LessonDetail = () => {
                                 <h3 className="text-xl font-semibold text-gray-800 mb-2">{currentAudioNameForTopPlayer}</h3>
                                 <audio controls src={currentAudioForTopPlayer} className="w-full max-w-md rounded-lg mb-2"></audio>
                                 
-                                <div className="mt-4 space-x-4">
+                                <div className="mt-4 space-x-4 flex justify-center"> {/* Centram butoanele */}
                                     {/* Butonul de salvare apare doar dacă există o înregistrare temporară, nesalvată */}
-                                    {(tempPreviewAudioBlob || tempUserSelectedFile) && (
+                                    {(tempPreviewAudioBlob || tempUserSelectedFile) ? (
                                         <button
                                             onClick={handleUserRecordingSubmit}
                                             className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded-lg transition duration-200 shadow-md"
@@ -497,12 +496,23 @@ const LessonDetail = () => {
                                         >
                                             {uploadingRecording ? 'Se încarcă...' : 'Salvează Înregistrarea'}
                                         </button>
+                                    ) : (
+                                        // Butonul de ștergere apare doar dacă există o înregistrare salvată
+                                        lastSavedRecordingId && (
+                                            <button
+                                                onClick={handleDeleteUserRecording}
+                                                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-5 rounded-lg transition duration-200 shadow-md"
+                                                disabled={deletingRecording}
+                                            >
+                                                {deletingRecording ? 'Se șterge...' : 'Șterge Înregistrarea Curentă'}
+                                            </button>
+                                        )
                                     )}
                                     <button
                                         onClick={resetTemporaryRecordingOptions}
                                         className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-5 rounded-lg transition duration-200 shadow-md"
                                     >
-                                        Resetează / Înregistrează Nouă
+                                        Înregistrează Nouă / Resetează
                                     </button>
                                 </div>
                             </div>
@@ -524,8 +534,8 @@ const LessonDetail = () => {
                 </div>
             )}
 
-            {/* Secțiunea pentru înregistrările utilizatorului pentru această lecție */}
-            {isAuthenticated && (userLessonRecordings.length > 0 || fetchingUserRecordings) && (
+            {/* SECȚIUNEA PENTRU ÎNREGISTRĂRILE UTILIZATORULUI (Eliminată din cerere) */}
+            {/* {isAuthenticated && (userLessonRecordings.length > 0 || fetchingUserRecordings) && (
                 <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
                     <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Înregistrările Tale pentru Această Lecție</h2>
                     {fetchingUserRecordings ? (
@@ -555,10 +565,11 @@ const LessonDetail = () => {
                     )}
                 </div>
             )}
+            */}
             {/* Mesaj dacă nu există înregistrări și utilizatorul este autentificat */}
-            {isAuthenticated && userLessonRecordings.length === 0 && !fetchingUserRecordings && (
+            {isAuthenticated && !currentAudioForTopPlayer && !fetchingUserRecordings && !isRecording && (
                 <div className="bg-white rounded-xl shadow-lg p-8 mt-8 text-center">
-                    <p className="text-xl text-gray-700">Nu ai încă înregistrări pentru această lecție.</p>
+                    <p className="text-xl text-gray-700">Nu ai încă o înregistrare pentru această lecție.</p>
                     <p className="text-gray-600">Folosește interfața de mai sus pentru a înregistra prima ta cântare!</p>
                 </div>
             )}

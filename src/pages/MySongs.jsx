@@ -115,14 +115,9 @@ const MySongs = () => {
 
     return (
         <div className="container mx-auto p-6">
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-8 text-center">Cântările Mele</h1>
+            <h1 className="text-4xl font-extrabold text-white mb-8 text-center">Cântările Mele</h1>
 
-            {/* Buton "Înregistrare nouă" */}
-            <div className="flex justify-center mb-8">
-                <Link to="/lessons" className="bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-6 rounded-lg transition duration-200 shadow-md">
-                    Înregistrează o Cântare Nouă
-                </Link>
-            </div>
+            
 
             {userRecordings.length === 0 ? (
                 <div className="text-center p-8 bg-white rounded-xl shadow-md">
