@@ -143,11 +143,11 @@ const LessonForm = () => {
             if (isEditMode) {
                 response = await axios.put(`http://localhost:3000/api/lessons/${id}`, formData, config);
                 console.log('Lecția a fost actualizată cu succes:', response.data);
-                alert('Lecția a fost actualizată cu succes!');
+                
             } else {
                 response = await axios.post('http://localhost:3000/api/lessons/create', formData, config);
                 console.log('Lecția a fost creată cu succes:', response.data);
-                alert('Lecția a fost creată cu succes!');
+                
             }
             navigate('/admin/lessons');
         } catch (error) {
