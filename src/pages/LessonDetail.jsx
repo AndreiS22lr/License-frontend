@@ -1,4 +1,3 @@
-// src/pages/LessonDetail.jsx
 import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -12,6 +11,14 @@ const LessonDetail = () => {
     const [lesson, setLesson] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // --- Stări noi pentru QUIZ ---
+    const [quiz, setQuiz] = useState(null);
+    const [quizLoading, setQuizLoading] = useState(false);
+    const [quizError, setQuizError] = useState(null);
+    const [userAnswers, setUserAnswers] = useState({}); // { questionIndex: "selectedOptionText" }
+    const [quizSubmitted, setQuizSubmitted] = useState(false); // Indică dacă utilizatorul a trimis deja quiz-ul
+    const [quizResult, setQuizResult] = useState(null); // Rezultatul primit de la backend după submitere
 
     // Stări pentru înregistrarea audio directă (microfon) SAU selectarea unui fișier temporar
     const [isRecording, setIsRecording] = useState(false);
@@ -27,8 +34,6 @@ const LessonDetail = () => {
     const [recordingError, setRecordingError] = useState(null); // Mesaj de eroare general pentru înregistrare/upload
     const [uploadingRecording, setUploadingRecording] = useState(false);
 
-    // Stări pentru a afișa toate înregistrările existente ale utilizatorului pentru această lecție (lista de jos - ELIMINATĂ ACUM)
-    // const [userLessonRecordings, setUserLessonRecordings] = useState([]);
     const [fetchingUserRecordings, setFetchingUserRecordings] = useState(false);
     const [deletingRecording, setDeletingRecording] = useState(false); // NOU: Stare pentru a indica ștergerea
 
@@ -58,7 +63,7 @@ const LessonDetail = () => {
             const fetchedRecordings = response.data.data;
             // Presupunem că backend-ul returnează maxim o înregistrare sau un array gol
             if (fetchedRecordings.length > 0) {
-                const mostRecentRecording = fetchedRecordings[0]; 
+                const mostRecentRecording = fetchedRecordings[0];
                 setLastSavedAudioURL(`http://localhost:3000${mostRecentRecording.audioUrl}`);
                 setLastSavedAudioName(`Înregistrare salvată: ${new Date(mostRecentRecording.createdAt).toLocaleDateString()}`);
                 setLastSavedRecordingId(mostRecentRecording.id); // Setează ID-ul înregistrării salvate
@@ -76,8 +81,7 @@ const LessonDetail = () => {
         } finally {
             setFetchingUserRecordings(false);
         }
-    }, [id, isAuthenticated, token]); 
-
+    }, [id, isAuthenticated, token]);
 
     useEffect(() => {
         if (isAuthenticated && id) {
@@ -85,13 +89,12 @@ const LessonDetail = () => {
         }
     }, [isAuthenticated, id, fetchUserRecordingForLesson]);
 
-
     // --- Funcții pentru înregistrarea audio directă (microfon) ---
     const startRecording = async () => {
         if (tempPreviewAudioURL && tempPreviewAudioURL.startsWith('blob:')) {
             URL.revokeObjectURL(tempPreviewAudioURL);
         }
-        setTempUserSelectedFile(null); 
+        setTempUserSelectedFile(null);
         setTempPreviewAudioURL(null);
         setTempPreviewAudioBlob(null);
         setRecordingError(null);
@@ -110,8 +113,8 @@ const LessonDetail = () => {
             mediaRecorder.onstop = () => {
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
                 const audioURL = URL.createObjectURL(audioBlob);
-                setTempPreviewAudioURL(audioURL); 
-                setTempPreviewAudioBlob(audioBlob); 
+                setTempPreviewAudioURL(audioURL);
+                setTempPreviewAudioBlob(audioBlob);
                 setIsRecording(false);
 
                 if (streamRef.current) {
@@ -154,7 +157,7 @@ const LessonDetail = () => {
         if (tempPreviewAudioURL && tempPreviewAudioURL.startsWith('blob:')) {
             URL.revokeObjectURL(tempPreviewAudioURL);
         }
-        setTempPreviewAudioURL(null); 
+        setTempPreviewAudioURL(null);
         setTempPreviewAudioBlob(null);
         setIsRecording(false);
         if (streamRef.current) {
@@ -163,11 +166,11 @@ const LessonDetail = () => {
         }
 
         const file = e.target.files[0];
-        setTempUserSelectedFile(file); 
+        setTempUserSelectedFile(file);
         setRecordingError(null);
 
         if (file) {
-            setTempPreviewAudioURL(URL.createObjectURL(file)); 
+            setTempPreviewAudioURL(URL.createObjectURL(file));
         }
     };
 
@@ -178,7 +181,7 @@ const LessonDetail = () => {
             streamRef.current = null;
         }
         setIsRecording(false);
-        
+
         if (tempPreviewAudioURL && tempPreviewAudioURL.startsWith('blob:')) {
             URL.revokeObjectURL(tempPreviewAudioURL);
         }
@@ -189,7 +192,7 @@ const LessonDetail = () => {
         audioChunksRef.current = [];
         console.log('Opțiunile de înregistrare/încărcare temporare au fost resetate.');
         // După resetare, forțăm o re-preluare pentru a afișa ultima înregistrare salvată din DB, dacă există.
-        fetchUserRecordingForLesson(); 
+        fetchUserRecordingForLesson();
     };
 
     // --- Funcție pentru upload-ul înregistrării utilizatorului (ambele opțiuni) ---
@@ -201,7 +204,7 @@ const LessonDetail = () => {
         let fileToUpload = null;
 
         // CORECTAT: Folosim tempPreviewAudioBlob, nu recordedAudioBlob
-        if (tempPreviewAudioBlob) { 
+        if (tempPreviewAudioBlob) {
             fileToUpload = new File([tempPreviewAudioBlob], `recording-${Date.now()}.webm`, { type: tempPreviewAudioBlob.type });
         } else if (tempUserSelectedFile) {
             fileToUpload = tempUserSelectedFile;
@@ -240,7 +243,7 @@ const LessonDetail = () => {
 
             console.log('FRONTEND: Înregistrarea utilizatorului a fost salvată cu succes:', response.data);
             setRecordingError('Înregistrarea ta a fost salvată cu succes!');
-            
+
             if (tempPreviewAudioURL && tempPreviewAudioURL.startsWith('blob:')) {
                 URL.revokeObjectURL(tempPreviewAudioURL);
             }
@@ -249,8 +252,8 @@ const LessonDetail = () => {
             setTempUserSelectedFile(null);
 
             // Reîmprospătăm starea înregistrării salvate (va prelua noua înregistrare)
-            fetchUserRecordingForLesson(); 
-            
+            fetchUserRecordingForLesson();
+
         } catch (error) {
             console.error('FRONTEND ERROR: Eroare la trimiterea înregistrării utilizatorului:', error);
             if (error.response) {
@@ -301,13 +304,13 @@ const LessonDetail = () => {
             });
             console.log(`FRONTEND DEBUG (LessonDetail): Înregistrarea ${lastSavedRecordingId} ștearsă cu succes.`);
             setRecordingError('Înregistrarea a fost ștearsă cu succes!');
-            
+
             // După ștergere, curățăm player-ul de sus
             setLastSavedAudioURL(null);
             setLastSavedAudioName(null);
             setLastSavedRecordingId(null);
             // resetTemporaryRecordingOptions(); // Ar putea fi apelat dacă vrei să resetezi și opțiunile de înregistrare
-            
+
         } catch (err) {
             console.error('FRONTEND ERROR (LessonDetail): Eroare la ștergerea înregistrării utilizatorului:', err);
             setRecordingError(err.response?.data?.message || 'Eroare la ștergerea înregistrării.');
@@ -320,28 +323,114 @@ const LessonDetail = () => {
         }
     };
 
-
-    // --- Preluarea datelor lecției (logica existentă) ---
+    // --- Preluarea datelor lecției ȘI a quiz-ului (LOGICĂ MODIFICATĂ) ---
     useEffect(() => {
-        const fetchLesson = async () => {
-            try {
-                const response = await axios.get(`http://localhost:3000/api/lessons/${id}`);
-                setLesson(response.data.data);
+        const fetchLessonAndQuiz = async () => {
+            setLoading(true);
+            setQuizLoading(true); // Începe încărcarea pentru quiz odată cu lecția
+            setError(null);
+            setQuizError(null);
+            setQuiz(null); // Resetăm quiz-ul la fiecare reîncărcare
+
+            if (!id) {
+                setError("ID-ul lecției lipsește din URL.");
                 setLoading(false);
+                setQuizLoading(false);
+                return;
+            }
+
+            try {
+                // 1. Preluarea lecției
+                const lessonResponse = await axios.get(`http://localhost:3000/api/lessons/${id}`);
+                setLesson(lessonResponse.data.data);
+
+                // 2. Preluarea quiz-ului asociat lecției
+                try {
+                    const quizResponse = await axios.get(`http://localhost:3000/api/quizzes/by-lesson/${id}`);
+                    setQuiz(quizResponse.data); // Backend-ul returnează direct obiectul quiz
+                    // Dacă quiz-ul are deja răspunsuri, poți seta quizSubmitted și quizResult aici,
+                    // dar pentru prima iterație, presupunem că utilizatorul răspunde la un quiz nou.
+                } catch (quizErr) {
+                    // E ok dacă nu există un quiz pentru lecție (status 404)
+                    if (quizErr.response && quizErr.response.status === 404) {
+                        setQuiz(null); // Nu există quiz, setăm la null
+                        console.log(`FRONTEND DEBUG: Nu există quiz pentru lecția ${id}.`);
+                    } else {
+                        console.error("FRONTEND ERROR: Eroare la preluarea quiz-ului:", quizErr);
+                        setQuizError("Nu s-a putut încărca quiz-ul.");
+                    }
+                }
             } catch (err) {
                 console.error("FRONTEND ERROR: Eroare la preluarea lecției:", err);
                 setError("Nu s-a putut încărca lecția. Te rog încearcă din nou.");
+            } finally {
                 setLoading(false);
+                setQuizLoading(false);
             }
         };
 
-        if (id) {
-            fetchLesson();
-        } else {
-            setError("ID-ul lecției lipsește din URL.");
-            setLoading(false);
+        fetchLessonAndQuiz();
+    }, [id]); // Rulăm efectul când ID-ul lecției se schimbă
+
+    // --- Logica Quiz-ului ---
+    const handleAnswerChange = (questionIndex, option) => {
+        setUserAnswers(prevAnswers => ({
+            ...prevAnswers,
+            [questionIndex]: option, // Stocăm opțiunea selectată pentru indexul întrebării
+        }));
+    };
+
+    const handleSubmitQuiz = async () => {
+        if (!isAuthenticated || !token) {
+            alert('Te rog loghează-te pentru a trimite răspunsurile la quiz.');
+            logout();
+            navigate('/login');
+            return;
         }
-    }, [id]);
+
+        if (!quiz || !quiz.questions) {
+            alert('Nu există un quiz valid de trimis.');
+            return;
+        }
+
+        // Verificăm dacă toate întrebările au primit un răspuns
+        if (Object.keys(userAnswers).length !== quiz.questions.length) {
+            alert("Te rog răspunde la toate întrebările înainte de a trimite.");
+            return;
+        }
+
+        try {
+            // Aici vei trimite răspunsurile către backend.
+            // Presupunem că ai un endpoint pentru asta, de exemplu:
+            // POST /api/user-completed-quizzes/submit
+            // Backend-ul va verifica răspunsurile și va returna un scor/feedback.
+            const submissionData = {
+                quizId: quiz.id,
+                lessonId: id, // Asigură-te că trimiți lessonId
+                answers: userAnswers, // { "0": "Opțiunea A", "1": "Opțiunea B" }
+            };
+
+            const response = await axios.post(`http://localhost:3000/api/user-completed-quizzes/submit`, submissionData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            });
+
+            setQuizResult(response.data); // Aici vei primi scorul/feedback-ul de la backend
+            setQuizSubmitted(true);
+            alert("Răspunsurile tale au fost trimise cu succes!");
+
+        } catch (err) {
+            console.error("FRONTEND ERROR: Eroare la trimiterea răspunsurilor quiz-ului:", err);
+            const errorMessage = err.response?.data?.message || err.response?.data?.error || 'A apărut o eroare la trimiterea răspunsurilor. Te rog încearcă din nou.';
+            alert(errorMessage);
+            if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+                logout();
+                navigate('/login');
+            }
+        }
+    };
 
     if (loading) {
         return (
@@ -385,9 +474,8 @@ const LessonDetail = () => {
     const currentAudioForTopPlayer = tempPreviewAudioURL || lastSavedAudioURL;
     // Determină numele audio-ului pentru afișare
     const currentAudioNameForTopPlayer = tempUserSelectedFile?.name ? `Fișier selectat: ${tempUserSelectedFile.name}` :
-                                         tempPreviewAudioBlob ? 'Înregistrare nouă (neînregistrată)' :
-                                         lastSavedAudioName || 'Audio';
-
+        tempPreviewAudioBlob ? 'Înregistrare nouă (neînregistrată)' :
+            lastSavedAudioName || 'Audio';
 
     return (
         <div className="container mx-auto p-6">
@@ -434,7 +522,7 @@ const LessonDetail = () => {
                     <div className="flex flex-col items-center justify-center p-4 border border-gray-300 rounded-lg bg-gray-50 mb-6">
                         {/* Afișăm opțiunile de pornire înregistrare/încărcare fișier DOAR dacă nu e înregistrare activă
                             și NU există audio pregătit TEMPORAR și NU există audio SALVAT care să fie afișat */}
-                        {!isRecording && !tempPreviewAudioURL && !lastSavedAudioURL && ( 
+                        {!isRecording && !tempPreviewAudioURL && !lastSavedAudioURL && (
                             <div className="w-full flex flex-col items-center mb-4">
                                 <button
                                     onClick={startRecording}
@@ -464,7 +552,7 @@ const LessonDetail = () => {
                                 <p className="text-gray-600 mt-3 text-sm">Înregistrare activă...</p>
                             </div>
                         )}
-                        
+
                         {!isRecording && !tempPreviewAudioURL && !lastSavedAudioURL && (
                             <div className="w-full flex flex-col items-center">
                                 <label htmlFor="userAudioFile" className="block text-lg font-medium text-gray-700 mb-2">
@@ -474,7 +562,7 @@ const LessonDetail = () => {
                                     type="file"
                                     id="userAudioFile"
                                     accept="audio/*"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-red-700 hover:file:bg-gray-200"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-blue-700 hover:file:bg-gray-200"
                                     onChange={handleUserSelectedFileChange}
                                 />
                             </div>
@@ -485,7 +573,7 @@ const LessonDetail = () => {
                             <div className="w-full mt-4 flex flex-col items-center">
                                 <h3 className="text-xl font-semibold text-gray-800 mb-2">{currentAudioNameForTopPlayer}</h3>
                                 <audio controls src={currentAudioForTopPlayer} className="w-full max-w-md rounded-lg mb-2"></audio>
-                                
+
                                 <div className="mt-4 space-x-4 flex justify-center"> {/* Centram butoanele */}
                                     {/* Butonul de salvare apare doar dacă există o înregistrare temporară, nesalvată */}
                                     {(tempPreviewAudioBlob || tempUserSelectedFile) ? (
@@ -527,45 +615,13 @@ const LessonDetail = () => {
                     </p>
                     <button
                         onClick={() => navigate('/login')}
-                        className="bg-red-700 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-red-800 transition-colors duration-300"
+                        className="bg-blue-700 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-800 transition-colors duration-300"
                     >
                         Mergi la Login
                     </button>
                 </div>
             )}
 
-            {/* SECȚIUNEA PENTRU ÎNREGISTRĂRILE UTILIZATORULUI (Eliminată din cerere) */}
-            {/* {isAuthenticated && (userLessonRecordings.length > 0 || fetchingUserRecordings) && (
-                <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
-                    <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Înregistrările Tale pentru Această Lecție</h2>
-                    {fetchingUserRecordings ? (
-                        <p className="text-gray-700">Se încarcă înregistrările...</p>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {userLessonRecordings.map(recording => (
-                                <div key={recording.id} className="bg-gray-100 rounded-lg p-4 shadow-sm flex flex-col justify-between">
-                                    <div>
-                                        <p className="text-gray-700 text-sm mb-2">
-                                            Înregistrat la: {new Date(recording.createdAt).toLocaleDateString()}
-                                        </p>
-                                        {recording.audioUrl && (
-                                            <audio controls src={`http://localhost:3000${recording.audioUrl}`} className="w-full rounded-lg mb-3"></audio>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={() => handleDeleteUserRecording(recording.id)}
-                                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition duration-200 shadow-md mt-auto"
-                                        disabled={deletingRecordingId === recording.id}
-                                    >
-                                        {deletingRecordingId === recording.id ? 'Se șterge...' : 'Șterge'}
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
-            */}
             {/* Mesaj dacă nu există înregistrări și utilizatorul este autentificat */}
             {isAuthenticated && !currentAudioForTopPlayer && !fetchingUserRecordings && !isRecording && (
                 <div className="bg-white rounded-xl shadow-lg p-8 mt-8 text-center">
@@ -573,8 +629,70 @@ const LessonDetail = () => {
                     <p className="text-gray-600">Folosește interfața de mai sus pentru a înregistra prima ta cântare!</p>
                 </div>
             )}
+
+            {/* AICI MUTĂM SECȚIUNEA DE QUIZ */}
+            {isAuthenticated && (
+                <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Quiz pentru Lecție</h2>
+                    {quizLoading ? (
+                        <p className="text-gray-700 text-center">Se încarcă quiz-ul...</p>
+                    ) : quizError ? (
+                        <p className="text-red-500 text-center">{quizError}</p>
+                    ) : quiz ? (
+                        <div>
+                            <h3 className="text-2xl font-semibold text-gray-800 mb-3">{quiz.title}</h3>
+                            {quiz.description && <p className="mb-4 text-gray-600">{quiz.description}</p>}
+
+                            {quiz.questions.map((q, qIndex) => (
+                                <div key={qIndex} className="bg-gray-100 p-5 rounded-lg shadow-sm mb-4">
+                                    <p className="font-medium text-lg text-gray-900 mb-3">{qIndex + 1}. {q.questionText}</p>
+                                    {q.imageUrl && (
+                                        <img src={`http://localhost:3000${q.imageUrl}`} alt="Imagine întrebare" className="max-w-xs h-auto mb-4 rounded-md shadow-sm" />
+                                    )}
+                                    <div className="flex flex-col space-y-2">
+                                        {q.options.map((option, oIndex) => (
+                                            <label key={oIndex} className="inline-flex items-center text-gray-700 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name={`question-${qIndex}`}
+                                                    value={option}
+                                                    checked={userAnswers[qIndex] === option}
+                                                    onChange={() => handleAnswerChange(qIndex, option)}
+                                                    disabled={quizSubmitted} // Dezactivează input-urile după trimitere
+                                                    className="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                                />
+                                                <span className="ml-3 text-base">{option}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+
+                            {!quizSubmitted && (
+                                <button
+                                    onClick={handleSubmitQuiz}
+                                    className="mt-6 w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition duration-300 ease-in-out text-lg"
+                                >
+                                    Trimite Răspunsuri
+                                </button>
+                            )}
+
+                            {quizResult && (
+                                <div className="mt-6 p-5 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 font-semibold shadow-inner">
+                                    <h3 className="text-xl font-bold mb-2">Rezultatele Tale:</h3>
+                                    <p className="text-lg">{quizResult.message || JSON.stringify(quizResult)}</p>
+                                    {/* Poți afișa mai multe detalii dacă backend-ul le oferă, ex: număr corect, răspunsuri greșite */}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <p className="text-gray-600 text-center">Nu există un quiz disponibil pentru această lecție.</p>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
 
 export default LessonDetail;
+

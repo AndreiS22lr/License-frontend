@@ -41,13 +41,7 @@ const Navbar = () => {
           Lecții
         </Link>
 
-        <Link to="/exercises" className="hover:underline">
-          Exerciții
-        </Link>
-
-        <Link to="/songs" className="hover:underline">
-          Cântări
-        </Link>
+        
 
         <Link to="/mysongs" className="hover:underline">
           Cântările mele
