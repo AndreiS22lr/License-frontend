@@ -70,11 +70,14 @@ const LessonForm = () => {
                     setExistingSheetMusicImageUrl(lessonData.sheetMusicImageUrl || '');
                     setExistingAudioUrl(lessonData.audioUrl || '');
 
-                    if (quizResponse.data && quizResponse.data.data) {
-                        const quizData = quizResponse.data.data;
+                    console.log("quizResponse")
+                    console.log(quizResponse)
+
+                    if (quizResponse.data) {
+                        const quizData = quizResponse.data;
                         setExistingQuizId(quizData.id);
                         setQuizTitle(quizData.title || '');
-                        setQuizDescription(quizData.description || '');
+                        setQuizDescription(quizData.description || 'Nu are descriere');
                         // Aici procesăm URL-urile imaginilor pentru a se asigura că sunt null (nu 'null' string)
                         setQuizQuestions(quizData.questions.map(q => ({
                             ...q,
