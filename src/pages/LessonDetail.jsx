@@ -407,7 +407,7 @@ const LessonDetail = () => {
             const submissionData = {
                 quizId: quiz.id,
                 lessonId: id, // Asigură-te că trimiți lessonId
-                answers: userAnswers, // { "0": "Opțiunea A", "1": "Opțiunea B" }
+                userAnswers: userAnswers, // { "0": "Opțiunea A", "1": "Opțiunea B" }
             };
 
             const response = await axios.post(`http://localhost:3000/api/user-completed-quizzes/submit`, submissionData, {
