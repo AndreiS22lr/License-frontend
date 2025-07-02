@@ -11,7 +11,7 @@ const AdminLessons = () => {
     const navigate = useNavigate();
     const { token, isAuthenticated, user, logout } = useContext(AuthContext);
 
-    // Protejarea rutei: doar adminii pot accesa
+    
     useEffect(() => {
         if (!isAuthenticated || user?.role !== 'admin') {
             alert('Nu ai permisiuni de administrator pentru a accesa această pagină.');
@@ -19,14 +19,14 @@ const AdminLessons = () => {
         }
     }, [isAuthenticated, user, navigate]);
 
-    // Funcție pentru a prelua lecțiile (va fi reutilizată după ștergere/editare)
+    
     const fetchLessons = async () => {
         setLoading(true);
         setError(null);
         try {
             const response = await axios.get('http://localhost:3000/api/lessons', {
                 headers: {
-                    'Authorization': `Bearer ${token}` // Trimite token-ul și la GET dacă API-ul cere
+                    'Authorization': `Bearer ${token}` 
                 }
             });
             setLessons(response.data.data || []);
@@ -47,9 +47,9 @@ const AdminLessons = () => {
         if (isAuthenticated && user?.role === 'admin') {
             fetchLessons();
         }
-    }, [isAuthenticated, user, token]); // Rulează când se schimbă starea de autentificare sau token-ul
+    }, [isAuthenticated, user, token]); 
 
-    // Funcție pentru ștergerea unei lecții
+    
     const handleDeleteLesson = async (lessonId) => {
         if (!window.confirm('Ești sigur că vrei să ștergi această lecție? Această acțiune este ireversibilă și va șterge și fișierele asociate!')) {
             return;
@@ -68,7 +68,7 @@ const AdminLessons = () => {
                 }
             });
             alert('Lecția a fost ștearsă cu succes!');
-            fetchLessons(); // Reîncarcă lista de lecții după ștergere
+            fetchLessons(); 
         } catch (err) {
             console.error('Eroare la ștergerea lecției:', err);
             setError(err.response?.data?.message || 'Eroare la ștergerea lecției.');
@@ -93,7 +93,7 @@ const AdminLessons = () => {
             <div className="flex flex-col justify-center items-center h-screen bg-red-50 p-4">
                 <p className="text-xl text-red-700 mb-4">{error}</p>
                 <button
-                    onClick={fetchLessons} // Încearcă să reîncarci
+                    onClick={fetchLessons} 
                     className="bg-red-700 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-red-800 transition-colors duration-300"
                 >
                     Reîncarcă Lecțiile
@@ -105,7 +105,7 @@ const AdminLessons = () => {
     if (lessons.length === 0) {
         return (
             <div className="container mx-auto p-6 text-center bg-white rounded-xl shadow-lg my-8">
-                <h1 className="text-4xl font-extrabold text-gray-900 mb-6">Administrare Lecții</h1>
+                <h1 className="text-4xl font-extrabold text-white mb-6">Administrare Lecții</h1>
                 <p className="text-lg text-gray-600 mb-8">
                     Momentan nu există lecții. Adaugă prima lecție!
                 </p>
@@ -122,7 +122,7 @@ const AdminLessons = () => {
     return (
         <div className="container mx-auto p-6">
             <div className="flex justify-between items-center mb-10">
-                <h1 className="text-4xl font-extrabold text-gray-900">Administrare Lecții</h1>
+                <h1 className="text-4xl font-extrabold text-white">Administrare Lecții</h1>
                 <Link
                     to="/admin/lessons/create"
                     className="bg-red-700 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-red-800 transition-colors duration-300"
@@ -154,7 +154,7 @@ const AdminLessons = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {lessons.sort((a, b) => a.order - b.order).map((lesson) => ( // Sortează după ordine
+                            {lessons.sort((a, b) => a.order - b.order).map((lesson) => ( 
                                 <tr key={lesson.id} className="hover:bg-gray-50">
                                     <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                                         <p className="text-gray-900 whitespace-no-wrap">{lesson.order}</p>

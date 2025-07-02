@@ -7,7 +7,7 @@ const QuizEditor = ({
     quizDescription,
     setQuizDescription,
     quizQuestions,
-    // setQuizQuestions, // Acest prop nu este folosit direct aici, e ok să-l lași sau să-l ștergi dacă nu e necesar
+    
     quizError,
     handleAddQuestion,
     handleRemoveQuestion,
@@ -15,7 +15,7 @@ const QuizEditor = ({
     handleAddOption,
     handleRemoveOption,
     handleOptionTextChange,
-    handleCorrectAnswerChange, // Aceasta va primi textul opțiunii
+    handleCorrectAnswerChange, 
     handleQuestionImageChange,
     handleRemoveQuestionImage,
 }) => {
@@ -57,7 +57,7 @@ const QuizEditor = ({
                 ></textarea>
             </div>
 
-            {/* Lista de întrebări */}
+            
             {quizQuestions.length === 0 && (
                 <p className="text-gray-600 mb-4">Nu există încă întrebări. Adaugă una!</p>
             )}
@@ -89,7 +89,7 @@ const QuizEditor = ({
                         />
                     </div>
 
-                    {/* Imagine pentru intrebare (optional) */}
+                    
                     <div className="mb-4">
                         <label htmlFor={`questionImage-${qIndex}`} className="block text-sm font-medium text-gray-700 mb-2">
                             Imagine (Opțional)
@@ -129,13 +129,13 @@ const QuizEditor = ({
                             <div key={`${qIndex}-${oIndex}`} className="flex items-center space-x-2">
                                 <input
                                     type="radio"
-                                    key={`radio-${qIndex}-${oIndex}`} // Adăugat: Cheie unică pentru input-ul radio
+                                    key={`radio-${qIndex}-${oIndex}`} 
                                     name={`correctAnswer-${qIndex}`}
                                     value={optionText}
                                     checked={question.correctAnswer === optionText}
                                     onChange={() => handleCorrectAnswerChange(qIndex, optionText)}
                                     className="h-5 w-5 text-green-600 focus:ring-green-500 border-gray-300"
-                                    // Eliminat 'required' de aici. Validarea poate fi făcută la nivelul formularului principal.
+                                    
                                 />
                                 <input
                                     type="text"

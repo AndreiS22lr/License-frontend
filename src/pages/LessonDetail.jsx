@@ -568,14 +568,14 @@ const LessonDetail = () => {
                             </div>
                         )}
 
-                        {/* Player și butoane de acțiune pentru audio pregătit (fie temporar, fie ultimul salvat) */}
+                        
                         {(currentAudioForTopPlayer && !isRecording) && (
                             <div className="w-full mt-4 flex flex-col items-center">
                                 <h3 className="text-xl font-semibold text-gray-800 mb-2">{currentAudioNameForTopPlayer}</h3>
                                 <audio controls src={currentAudioForTopPlayer} className="w-full max-w-md rounded-lg mb-2"></audio>
 
-                                <div className="mt-4 space-x-4 flex justify-center"> {/* Centram butoanele */}
-                                    {/* Butonul de salvare apare doar dacă există o înregistrare temporară, nesalvată */}
+                                <div className="mt-4 space-x-4 flex justify-center"> 
+                                    
                                     {(tempPreviewAudioBlob || tempUserSelectedFile) ? (
                                         <button
                                             onClick={handleUserRecordingSubmit}
@@ -585,7 +585,7 @@ const LessonDetail = () => {
                                             {uploadingRecording ? 'Se încarcă...' : 'Salvează Înregistrarea'}
                                         </button>
                                     ) : (
-                                        // Butonul de ștergere apare doar dacă există o înregistrare salvată
+                                        
                                         lastSavedRecordingId && (
                                             <button
                                                 onClick={handleDeleteUserRecording}
@@ -622,7 +622,7 @@ const LessonDetail = () => {
                 </div>
             )}
 
-            {/* Mesaj dacă nu există înregistrări și utilizatorul este autentificat */}
+            
             {isAuthenticated && !currentAudioForTopPlayer && !fetchingUserRecordings && !isRecording && (
                 <div className="bg-white rounded-xl shadow-lg p-8 mt-8 text-center">
                     <p className="text-xl text-gray-700">Nu ai încă o înregistrare pentru această lecție.</p>
@@ -630,7 +630,7 @@ const LessonDetail = () => {
                 </div>
             )}
 
-            {/* AICI MUTĂM SECȚIUNEA DE QUIZ */}
+            
             {isAuthenticated && (
                 <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
                     <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Quiz pentru Lecție</h2>
@@ -658,7 +658,7 @@ const LessonDetail = () => {
                                                     value={option}
                                                     checked={userAnswers[qIndex] === option}
                                                     onChange={() => handleAnswerChange(qIndex, option)}
-                                                    disabled={quizSubmitted} // Dezactivează input-urile după trimitere
+                                                    disabled={quizSubmitted} 
                                                     className="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
                                                 />
                                                 <span className="ml-3 text-base">{option}</span>
@@ -681,7 +681,7 @@ const LessonDetail = () => {
                                 <div className="mt-6 p-5 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 font-semibold shadow-inner">
                                     <h3 className="text-xl font-bold mb-2">Rezultatele Tale:</h3>
                                     <p className="text-lg">{quizResult.message || JSON.stringify(quizResult)}</p>
-                                    {/* Poți afișa mai multe detalii dacă backend-ul le oferă, ex: număr corect, răspunsuri greșite */}
+                                    
                                 </div>
                             )}
                         </div>

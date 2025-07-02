@@ -28,7 +28,7 @@ const LessonForm = () => {
     const [error, setError] = useState(null);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-    // --- Stări pentru QUIZ (rămân aici pentru a le transmite ca props) ---
+    
     const [quizTitle, setQuizTitle] = useState('');
     const [quizDescription, setQuizDescription] = useState('');
     const [quizQuestions, setQuizQuestions] = useState([]);
@@ -36,7 +36,7 @@ const LessonForm = () => {
     const [quizSaving, setQuizSaving] = useState(false);
     const [quizError, setQuizError] = useState(null);
 
-    // Efect pentru preluarea datelor lecției ȘI QUIZ-ULUI în modul de editare
+    
     useEffect(() => {
         if (!isAuthenticated || user?.role !== 'admin') {
             alert('Nu ai permisiuni de administrator pentru a accesa această pagină. Te rog loghează-te ca admin.');
@@ -53,12 +53,12 @@ const LessonForm = () => {
                         axios.get(`http://localhost:3000/api/lessons/${id}`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         }),
-                        // ASIGURĂ-TE CĂ ACEST ENDPOINT ESTE CORECT PENTRU A PRELUA QUIZ-UL DUPĂ ID-UL LECȚIEI
+                        
                         axios.get(`http://localhost:3000/api/quizzes/by-lesson/${id}`, { 
                             headers: { 'Authorization': `Bearer ${token}` }
                         }).catch(err => {
                             console.warn("FRONTEND DEBUG: Nu s-a putut prelua quiz-ul pentru lecție (poate nu există sau acces neautorizat):", err.message);
-                            // Dacă nu există quiz, nu e o eroare fatală, continuăm cu null
+                            
                             return { data: { data: null } }; 
                         })
                     ]);
@@ -78,11 +78,11 @@ const LessonForm = () => {
                         setExistingQuizId(quizData.id);
                         setQuizTitle(quizData.title || '');
                         setQuizDescription(quizData.description || 'Nu are descriere');
-                        // Aici procesăm URL-urile imaginilor pentru a se asigura că sunt null (nu 'null' string)
+                        
                         setQuizQuestions(quizData.questions.map(q => ({
                             ...q,
                             imageUrl: q.imageUrl === 'null' ? null : q.imageUrl,
-                            imageFile: null // Asigură-te că imageFile este null la încărcare
+                            imageFile: null 
                         })) || []);
                     } else {
                         setExistingQuizId(null);
@@ -113,7 +113,7 @@ const LessonForm = () => {
     }, [id, isEditMode, isAuthenticated, user, navigate, token, logout]);
 
     const handleEditorChange = (content, editor) => {
-        // console.log('Content changed:', content);
+        
     };
 
     const handleSheetMusicImageChange = (e) => {
@@ -134,7 +134,7 @@ const LessonForm = () => {
         setExistingAudioUrl('');
     };
 
-    // --- FUNCTII PENTRU GESTIONAREA QUIZ-ULUI (rămân aici) ---
+    
     const handleAddQuestion = () => {
         setQuizQuestions([...quizQuestions, { questionText: '', options: ['', '', ''], correctAnswer: '', imageUrl: null, imageFile: null }]);
     };
@@ -178,21 +178,21 @@ const LessonForm = () => {
 
     const handleQuestionImageChange = (questionIndex, file) => {
         const newQuestions = [...quizQuestions];
-        newQuestions[questionIndex].imageFile = file; // Stocăm fișierul brut
-        newQuestions[questionIndex].imageUrl = file ? URL.createObjectURL(file) : null; // URL temporar pentru preview
+        newQuestions[questionIndex].imageFile = file; 
+        newQuestions[questionIndex].imageUrl = file ? URL.createObjectURL(file) : null; 
         setQuizQuestions(newQuestions);
     };
 
     const handleRemoveQuestionImage = (questionIndex) => {
         const newQuestions = [...quizQuestions];
         if (newQuestions[questionIndex].imageUrl && newQuestions[questionIndex].imageUrl.startsWith('http')) {
-            // Dacă imaginea existentă vine de la server, o marcăm pentru ștergere
-            newQuestions[questionIndex].imageUrl = 'null'; // Backend-ul va interpreta 'null' ca o cerere de ștergere
+            
+            newQuestions[questionIndex].imageUrl = 'null'; 
         } else {
-            // Dacă e o imagine nouă, doar resetăm starea
+            
             newQuestions[questionIndex].imageUrl = null;
         }
-        newQuestions[questionIndex].imageFile = null; // Eliminăm fișierul selectat
+        newQuestions[questionIndex].imageFile = null; 
         setQuizQuestions(newQuestions);
     };
 
@@ -209,10 +209,10 @@ const LessonForm = () => {
             return;
         }
 
-        let newLessonId = id; // Va fi actualizat dacă e mod de creare
+        let newLessonId = id; 
 
         try {
-            // --- PASUL 1: Salvează/Actualizează Lecția (Rămâne cu FormData, e OK) ---
+            
             const lessonFormData = new FormData();
             lessonFormData.append('title', lessonTitle);
             lessonFormData.append('order', lessonOrder);
@@ -221,20 +221,20 @@ const LessonForm = () => {
             if (sheetMusicImage) {
                 lessonFormData.append('sheetMusicImage', sheetMusicImage);
             } else if (isEditMode && existingSheetMusicImageUrl === '') {
-                lessonFormData.append('sheetMusicImageUrl', 'null'); // Semnalizează backend-ului să șteargă
+                lessonFormData.append('sheetMusicImageUrl', 'null'); 
             }
 
             if (lessonAudio) {
                 lessonFormData.append('audioFile', lessonAudio);
             } else if (isEditMode && existingAudioUrl === '') {
-                lessonFormData.append('audioUrl', 'null'); // Semnalizează backend-ului să șteargă
+                lessonFormData.append('audioUrl', 'null'); 
             }
 
             console.log(`Se pregătesc datele pentru ${isEditMode ? 'actualizare' : 'creare'} lecție.`);
 
             const lessonConfig = {
                 headers: {
-                    'Content-Type': 'multipart/form-data', // Rămâne multipart/form-data pentru lecție
+                    'Content-Type': 'multipart/form-data', 
                     'Authorization': `Bearer ${token}`
                 },
             };
@@ -246,27 +246,24 @@ const LessonForm = () => {
             } else {
                 lessonResponse = await axios.post('http://localhost:3000/api/lessons/create', lessonFormData, lessonConfig);
                 console.log('Lecția a fost creată cu succes:', lessonResponse.data);
-                newLessonId = lessonResponse.data.data.id; // Obține noul ID al lecției
+                newLessonId = lessonResponse.data.data.id; 
             }
 
-            // --- PASUL 2: Salvează/Actualizează Quiz-ul (ACUM TRIMITE JSON DIRECT!) ---
-            if (quizQuestions.length > 0 || quizTitle) { // Salvează/actualizează quiz doar dacă are conținut
+            
+            if (quizQuestions.length > 0 || quizTitle) { 
                 setQuizSaving(true);
                 
-                // Construim obiectul quiz-ului pentru a fi trimis ca JSON
+                
                 const quizDataToSend = {
-                    lessonId: newLessonId, // Folosește ID-ul lecției create/existente
+                    lessonId: newLessonId, 
                     title: quizTitle,
                     description: quizDescription,
                     questions: quizQuestions.map(q => {
-                        // Creăm o copie a întrebării, eliminând 'imageFile' pentru cererea JSON
+                        
                         const { imageFile, ...rest } = q; 
                         return {
                             ...rest,
-                            // Aici tratăm 'imageUrl' pentru a fi corect pentru backend:
-                            // - 'null' (string) dacă a fost marcată pentru ștergere
-                            // - URL-ul existent dacă nu s-a schimbat
-                            // - null dacă e o întrebare nouă fără imagine
+
                             imageUrl: (q.imageUrl === 'null' && !q.imageFile) ? 'null' : (q.imageUrl && !q.imageUrl.startsWith('blob:') ? q.imageUrl : null)
                         };
                     })
@@ -281,35 +278,20 @@ const LessonForm = () => {
                 
                 let quizResponse;
                 if (existingQuizId) {
-                    // Calea pentru ACTUALIZARE QUIZ
+                    
                     quizResponse = await axios.put(`http://localhost:3000/api/quizzes/update/${existingQuizId}`, quizDataToSend, quizConfig);
                     console.log('Quiz-ul a fost actualizat cu succes:', quizResponse.data);
                 } else {
-                    // Calea pentru CREARE QUIZ
+                    
                     quizResponse = await axios.post(`http://localhost:3000/api/quizzes/create`, quizDataToSend, quizConfig);
                     console.log('Quiz-ul a fost creat cu succes:', quizResponse.data);
                 }
 
-                // --- GESTIONAREA IMAGINILOR PENTRU ÎNTREBĂRI (Dacă vrei să le uploadezi) ---
-                // Această parte este lăsată ca un TO-DO.
-                // Dacă ai întrebări cu imagini noi (q.imageFile nu e null), va trebui să le uploadezi separat.
-                // Acest lucru implică un alt apel API cu FormData către un endpoint dedicat
-                // care folosește Multer pe backend pentru a salva imaginile și a le asocia cu întrebările.
-                // Nu am inclus implementarea aici pentru a menține focusul pe problema JSON,
-                // dar reține că e un pas necesar dacă imaginile sunt parte din quiz.
+                
                 const questionsWithNewImages = quizQuestions.filter(q => q.imageFile);
                 if (questionsWithNewImages.length > 0) {
                     console.warn("ATENȚIE: Imaginile pentru întrebări din quiz nu sunt încă gestionate de acest flux. Va trebui să implementezi un upload separat pentru ele.");
-                    // Exemplu de cum ai putea face asta (nu e complet, doar o idee):
-                    // const imageUploadFormData = new FormData();
-                    // questionsWithNewImages.forEach((q, index) => {
-                    //     imageUploadFormData.append(`questionImage_${index}`, q.imageFile);
-                    // });
-                    // // Aici ar trebui un apel către un API de upload de imagini separat
-                    // const uploadImageResponse = await axios.post('http://localhost:3000/api/quiz-question-images/upload', imageUploadFormData, {
-                    //     headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` }
-                    // });
-                    // // După upload, vei primi URL-urile noi și va trebui să faci un alt PUT la quiz cu URL-urile actualizate.
+                    
                 }
 
                 setQuizSaving(false);
@@ -317,17 +299,17 @@ const LessonForm = () => {
                  console.log("Nu există date pentru quiz de salvat/actualizat. Sărit pasul de salvare quiz.");
             }
 
-            // Redirecționează după ce ambele salvări sunt complete
+            
             navigate('/admin/lessons');
         } catch (error) {
             console.error('Eroare la salvarea lecției sau a quiz-ului:', error);
             if (error.response) {
                 console.error('Data eroare:', error.response.data);
                 console.error('Status eroare:', error.response.status);
-                // Încearcă să extragi mesajul de eroare specific de la backend
+                
                 const errorMessage = error.response.data.message || error.response.data.error || 'Eroare la salvarea datelor.';
                 setError(errorMessage);
-                setQuizError(errorMessage); // Afișează eroarea și la secțiunea de quiz
+                setQuizError(errorMessage); 
 
                 if (error.response.status === 401 || error.response.status === 403) {
                     alert('Sesiunea a expirat sau nu ai permisiuni. Te rog loghează-te din nou.');
@@ -367,7 +349,7 @@ const LessonForm = () => {
             </div>}
 
             <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Secțiunea pentru detalii lecție */}
+                
                 <div className="bg-white p-6 rounded-lg shadow-md">
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">Detalii Lecție</h2>
                     <div className="mb-6">
@@ -503,9 +485,9 @@ const LessonForm = () => {
                             }}
                         />
                     </div>
-                </div> {/* Sfarsit sectiune Detalii Lecție */}
+                </div> 
 
-                {/* SECȚIUNEA PENTRU GESTIONAREA QUIZ-ULUI - ACUM CA O COMPONENTĂ SEPARATĂ */}
+                
                 <QuizEditor
                     quizTitle={quizTitle}
                     setQuizTitle={setQuizTitle}
@@ -525,7 +507,7 @@ const LessonForm = () => {
                     handleRemoveQuestionImage={handleRemoveQuestionImage}
                 />
 
-                {/* Butonul de submit final */}
+                
                 <button
                     type="submit"
                     className="w-full bg-red-700 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-red-800 transition-colors duration-300 mt-8"

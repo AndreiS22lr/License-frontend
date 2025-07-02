@@ -5,35 +5,35 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 const Login = () => {
-    // Stări pentru câmpurile formularului
+    
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
 
-    // Stări pentru UI/feedback
+    
     const [error, setError] = useState(null);
-    const [isRegisterMode, setIsRegisterMode] = useState(false); // Comută între login și înregistrare
-    const [loading, setLoading] = useState(false); // Indică starea de încărcare/procesare
+    const [isRegisterMode, setIsRegisterMode] = useState(false); 
+    const [loading, setLoading] = useState(false); 
 
-    // Hook-uri React Router și Context
+    
     const navigate = useNavigate();
-    const { login: authContextLogin } = useContext(AuthContext); // Redenumim `login` din context pentru claritate
+    const { login: authContextLogin } = useContext(AuthContext); 
 
-    // Funcție ajutătoare pentru a goli toate câmpurile formularului și erorile
+    
     const clearFormFields = () => {
         setEmail('');
         setPassword('');
         setFirstName('');
         setLastName('');
-        setError(null); // Golește și mesajele de eroare
+        setError(null); 
     };
 
-    // Gestionează trimiterea formularului de login
+    
     const handleLoginSubmit = async (e) => {
-        e.preventDefault(); // Previne reîncărcarea paginii
-        setError(null);     // Resetează orice eroare anterioară
-        setLoading(true);   // Activează starea de încărcare
+        e.preventDefault(); 
+        setError(null);     
+        setLoading(true);   
 
         try {
             const response = await axios.post('http://localhost:3000/api/auth/login', {
@@ -42,12 +42,12 @@ const Login = () => {
             });
 
             const { token, user } = response.data;
-            authContextLogin(token, user); // Autentifică utilizatorul prin context
+            authContextLogin(token, user); 
 
            
-            clearFormFields(); // Golește câmpurile după un login reușit
+            clearFormFields(); 
 
-            // Redirecționare bazată pe rolul utilizatorului
+            
             if (user.role === 'admin') {
                 navigate('/admin/lessons');
             } else {
@@ -55,33 +55,33 @@ const Login = () => {
             }
         } catch (err) {
             console.error('Eroare la login:', err);
-            // Gestionează diferite tipuri de erori HTTP
+            
             if (err.response) {
-                // Eroare primită de la server (ex: 401 Unauthorized, 400 Bad Request)
+                
                 setError(err.response.data.message || 'Email sau parolă incorecte.');
             } else if (err.request) {
-                // Cererea a fost făcută, dar nu a primit răspuns (server inaccesibil)
+                
                 setError('Niciun răspuns de la server. Verifică conexiunea la internet sau dacă serverul backend rulează.');
             } else {
-                // Altceva a cauzat eroarea
+                
                 setError(`A apărut o eroare: ${err.message}`);
             }
         } finally {
-            setLoading(false); // Dezactivează starea de încărcare indiferent de rezultat
+            setLoading(false); 
         }
     };
 
-    // Gestionează trimiterea formularului de înregistrare
+    
     const handleRegisterSubmit = async (e) => {
-        e.preventDefault(); // Previne reîncărcarea paginii
-        setError(null);     // Resetează orice eroare anterioară
-        setLoading(true);   // Activează starea de încărcare
+        e.preventDefault(); 
+        setError(null);     
+        setLoading(true);   
 
-        // Validare simplă pe frontend pentru parolă
+        
         if (password.length < 8) {
             setError('Parola trebuie să aibă cel puțin 8 caractere.');
             setLoading(false);
-            return; // Oprește execuția funcției
+            return; 
         }
 
         try {
@@ -90,20 +90,20 @@ const Login = () => {
                 lastName,
                 email,
                 password,
-                // Rolul implicit este "user", nu trimitem "role" explicit decât dacă ar fi cazul de admin
+                
             });
 
-            const { token, user } = response.data; // Backend-ul ar trebui să returneze user și token la înregistrare
-            authContextLogin(token, user); // Autentifică utilizatorul imediat după înregistrare
+            const { token, user } = response.data; 
+            authContextLogin(token, user); 
 
            
-            clearFormFields(); // Golește câmpurile după înregistrare reușită
+            clearFormFields(); 
 
-            // Redirecționează noul utilizator către pagina principală
+            
             navigate('/');
         } catch (err) {
             console.error('Eroare la înregistrare:', err);
-            // Gestionează diferite tipuri de erori HTTP
+            
             if (err.response) {
                 setError(err.response.data.message || 'A apărut o eroare la înregistrare.');
             } else if (err.request) {
@@ -112,7 +112,7 @@ const Login = () => {
                 setError(`A apărut o eroare: ${err.message}`);
             }
         } finally {
-            setLoading(false); // Dezactivează starea de încărcare indiferent de rezultat
+            setLoading(false); 
         }
     };
 
@@ -123,7 +123,7 @@ const Login = () => {
                     {isRegisterMode ? 'Înregistrează-te' : 'Autentifică-te'}
                 </h2>
 
-                {/* Afișează mesajele de eroare, dacă există */}
+                
                 {error && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6 text-sm" role="alert">
                         <strong className="font-bold">Eroare:</strong>
@@ -132,7 +132,7 @@ const Login = () => {
                 )}
 
                 <form onSubmit={isRegisterMode ? handleRegisterSubmit : handleLoginSubmit}>
-                    {/* Câmpuri specifice pentru modul de înregistrare */}
+                    
                     {isRegisterMode && (
                         <>
                             <div className="mb-4">
@@ -146,7 +146,7 @@ const Login = () => {
                                     value={firstName}
                                     onChange={(e) => setFirstName(e.target.value)}
                                     required={isRegisterMode}
-                                    autoComplete="off" // Previne autofill-ul browserului
+                                    autoComplete="off" 
                                 />
                             </div>
                             <div className="mb-4">
@@ -160,13 +160,13 @@ const Login = () => {
                                     value={lastName}
                                     onChange={(e) => setLastName(e.target.value)}
                                     required={isRegisterMode}
-                                    autoComplete="off" // Previne autofill-ul browserului
+                                    autoComplete="off" 
                                 />
                             </div>
                         </>
                     )}
 
-                    {/* Câmpuri comune pentru login și înregistrare */}
+                    
                     <div className="mb-4">
                         <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="email">
                             Email:
@@ -178,7 +178,7 @@ const Login = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            autoComplete="off" // Previne autofill-ul browserului
+                            autoComplete="off" 
                         />
                     </div>
                     <div className="mb-6">
@@ -192,21 +192,21 @@ const Login = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            autoComplete="new-password" // Sfătuiește browserul să nu completeze automat parole vechi
+                            autoComplete="new-password" 
                         />
                     </div>
 
-                    {/* Butonul de submit */}
+                    
                     <button
                         type="submit"
                         className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-200 shadow-md hover:shadow-lg"
-                        disabled={loading} // Dezactivează butonul în timpul procesării
+                        disabled={loading} 
                     >
                         {loading ? 'Se procesează...' : (isRegisterMode ? 'Înregistrează-te' : 'Autentifică-te')}
                     </button>
                 </form>
 
-                {/* Comutare între modurile Login și Înregistrare */}
+                
                 <div className="mt-6 text-center text-gray-600 text-sm">
                     {isRegisterMode ? (
                         <span>

@@ -12,7 +12,7 @@ const App = () => {
       <div className="bg-cyan-950 min-h-screen">
       <Navbar />
 
-      {/* Render route-specific pages here */}
+      
       <main className="p-4">
         <Outlet />
       </main>
