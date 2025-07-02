@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext'; // Importă AuthContext
+import { AuthContext } from '../context/AuthContext'; 
 
 const AdminLessons = () => {
     const [lessons, setLessons] = useState([]);
